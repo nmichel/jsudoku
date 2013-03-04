@@ -44,6 +44,7 @@
 {
     text-align: center;
     width: 100px;
+    float: left;
 }
 
 #button_solve span
@@ -56,4 +57,16 @@
 #panel_value
 {
     display: table;
+}
+
+#panel_step_count
+{
+    width: 250px;
+}
+
+#panel_step_count span
+{
+    line-height: 50px; /* see #solve */
+    display: inline-block;
+    vertical-align: middle;
 }
