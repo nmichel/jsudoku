@@ -1,10 +1,9 @@
 .sudoku_grid
 {
-    width: calc(9*40px);
-    height: calc(9*40px);
     border: 1px solid black;
     border-radius: 5px;
     box-shadow: 10px 10px 5px #888888;
+    display: table;
 }
 
 .sudoku_grid_cell
@@ -22,7 +21,39 @@
     vertical-align: middle;
 }
 
+.sudoku_grid_row_end
+{
+    clear: both;
+}
+
 .cell_selected 
 {
     background-color: #0000AA;
+}
+
+/* */
+
+.panel
+{
+    height: 50px;
+    border: 1px solid black;
+    background-color: #AAAAAA;
+}
+
+#button_solve
+{
+    text-align: center;
+    width: 100px;
+}
+
+#button_solve span
+{
+    line-height: 50px; /* see #solve */
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#panel_value
+{
+    display: table;
 }

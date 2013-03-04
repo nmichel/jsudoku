@@ -16,13 +16,13 @@ requirejs.config({
 
 require(["jquery", "app/sudoku", "app/sudoku_view", "app/sudoku_solver"], function($, Sudoku, SudokuView, SudokuSolver) {
     console.log("Sudoku loaded");
-    var sudokuGrid = new Sudoku();
+    var sudokuGrid = new Sudoku(2, 2);
     var sudokuView = new SudokuView(sudokuGrid, "sudoku_container");
     sudokuGrid.addObserver(sudokuView);
 /*    sudokuGrid.setup(
         [[1, 0, 4],
          [2, 0, 3]]);*/
-    $("#solve").click(function() {
+    $("#button_solve").click(function() {
         var sudokuSolver = new SudokuSolver();
         sudokuSolver.solve(sudokuGrid);
     });

@@ -1,11 +1,10 @@
 define(
     [],
     function() {
-        function Cell(cluster, row, column) {
-            this.cluster = cluster;
-            this.row = row;
-            this.column = column;
+        function Cell(coords) {
             this.value = Cell.NO_VALUE;
+            this.coords = coords;
+            this.groups = [];
         }
 
         Cell.NO_VALUE = -1;
@@ -13,8 +12,13 @@ define(
         Cell.prototype = {};
         Cell.prototype.constructor = Cell;
 
+        Cell.prototype.addToSet = function(cellSet) {
+            this.groups.push(cellSet);
+            cellSet.addCell(this);
+        };
+
         Cell.prototype.getPos = function() {
-            return [this.column.getId(), this.row.getId()];
+            return this.coords;
         };
 
         Cell.prototype.getValue = function() {
@@ -22,9 +26,13 @@ define(
         };
 
         Cell.prototype.isFreeValue = function(value) {
-            return (this.row.isAllowedValue(value)
-                && this.column.isAllowedValue(value)
-                && this.cluster.isAllowedValue(value));
+            for (var iter = 0; iter < this.groups.length; ++iter) {
+                if (! this.groups[iter].isAllowedValue(value)) {
+                    return false; // <== 
+                }
+            }
+
+            return true; // <== 
         };
 
         Cell.prototype.setValue = function(value) {
@@ -43,7 +51,8 @@ define(
 
         Cell.prototype.getFreeValues = function() {
             var res = [];
-            for (var iter = 1; iter <= 9; ++iter) {
+            // All groups share the same size
+            for (var iter = 1; iter <= this.groups[0].getSize(); ++iter) {
                 if (this.isFreeValue(iter)) {
                     res.push(iter);
                 }
@@ -64,6 +73,10 @@ define(
         CellSet.prototype = {};
         CellSet.prototype.constructor = CellSet;
 
+        CellSet.prototype.getSize = function() {
+            return this.cells.length; // <== 
+        };
+
         CellSet.prototype.addCell = function(cell) {
             this.cells.push(cell);
         };
@@ -80,100 +93,68 @@ define(
 
         // -----
 
-        function Cluster() {
-            CellSet.call(this);
-        }
+        function Grid(clusterWidth, clusterHeight) {
+            this.clusterWidth = clusterWidth;
+            this.clusterHeight = clusterHeight;
+            this.sideSize = this.clusterWidth * this.clusterHeight;
+            this.clusterNumber = this.sideSize; // = SIDE_SIZE/CLUSTER_WIDTH * SIDE_SIZE/CLUSTER_HEIGHT = SIDE_SIZE^2/(CLUSTER_WIDTH*CLUSTER_HEIGHT) = SIDE_SIZE
 
-        Cluster.prototype = new CellSet();
-        Cluster.prototype.constructor = Cluster;
-
-        // -----
-
-        function Row(id) {
-            CellSet.call(this);
-            this.id = id;
-        };
-
-        Row.prototype = new CellSet();
-        Row.prototype.constructor = Row;
-
-        Row.prototype.getId = function() {
-            return this.id;
-        };
-
-        // -----
-
-        function Column(id) {
-            CellSet.call(this);
-            this.id = id;
-        };
-
-        Column.prototype = new CellSet();
-        Column.prototype.constructor = Column;
-
-        Column.prototype.getId = function() {
-            return this.id;
-        };
-
-        // -----
-
-        function Grid() {
             this.cells = [];
             this.rows = [];
             this.columns = [];
             this.clusters = [];
 
-            for (var iter = 0; iter < Grid.CLUSTER_NUMBER ; ++iter) {
-                this.clusters.push(new Cluster());
+            for (var iter = 0; iter < this.clusterNumber ; ++iter) {
+                this.clusters.push(new CellSet());
             }
 
-            for (var iter = 0; iter < Grid.SIDE_SIZE; ++iter) {
-                this.columns.push(new Column(iter));
+            for (var iter = 0; iter < this.sideSize; ++iter) {
+                this.columns.push(new CellSet());
             }
 
-            for (var iter = 0; iter < Grid.SIDE_SIZE; ++iter) {
-                this.rows.push(new Row(iter));
+            for (var iter = 0; iter < this.sideSize; ++iter) {
+                this.rows.push(new CellSet());
             }
 
-            for (var iter = 0; iter < Grid.SIDE_SIZE * Grid.SIDE_SIZE; ++iter) {
-                var cellX = iter % Grid.SIDE_SIZE;
-                var cellY = ~~(iter / Grid.SIDE_SIZE);
+            for (var yter = 0; yter < this.sideSize; ++yter) {
+                for (var xter = 0; xter < this.sideSize; ++xter) {
+                    var cellX = xter;
+                    var cellY = yter;
 
-                var clusterX = ~~(cellX / Grid.CLUSTER_WIDTH);
-                var clusterY = ~~(cellY / Grid.CLUSTER_HEIGHT);
-                var clusterId = clusterY * ~~(Grid.SIDE_SIZE / Grid.CLUSTER_WIDTH) + clusterX;
+                    var clusterX = ~~(cellX / this.clusterWidth);
+                    var clusterY = ~~(cellY / this.clusterHeight);
+                    var clusterId = clusterY * ~~(this.sideSize / this.clusterWidth) + clusterX;
 
-                var cluster = this.clusters[clusterId];
-                var row = this.rows[cellY];
-                var column = this.columns[cellX];
+                    var cluster = this.clusters[clusterId];
+                    var row = this.rows[cellY];
+                    var column = this.columns[cellX];
 
-                var cell = new Cell(cluster, row, column);
-
-                this.cells.push(cell);
-                cluster.addCell(cell);
-                row.addCell(cell);
-                column.addCell(cell);
+                    var cell = new Cell([xter, yter]);
+                    cell.addToSet(cluster);
+                    cell.addToSet(row);
+                    cell.addToSet(column);
+                    this.cells.push(cell);
+                }
             }
         };
-
-        Grid.CLUSTER_WIDTH = 3;
-        Grid.CLUSTER_HEIGHT = 3;
-        Grid.SIDE_SIZE = Grid.CLUSTER_WIDTH * Grid.CLUSTER_HEIGHT; 
-        Grid.CLUSTER_NUMBER = Grid.SIDE_SIZE; // = SIDE_SIZE/CLUSTER_WIDTH * SIDE_SIZE/CLUSTER_HEIGHT = SIDE_SIZE^2/(CLUSTER_WIDTH*CLUSTER_HEIGHT) = SIDE_SIZE
 
         Grid.prototype = {};
         Grid.prototype.constructor = Grid;
 
+        Grid.prototype.getSideSize = function() {
+            return this.sideSize; // <== 
+        };
+
         Grid.prototype.getCellAtPos = function(posX, posY) {
             // TODO : check posX, posY
 
-            return this.cells[posY*Grid.SIDE_SIZE+posX];
+            return this.cells[posY*this.sideSize+posX]; // <== 
         };
 
         Grid.prototype.setCellValue = function(posX, posY, value) {
             // TODO : check posX, posY, value
 
-            return this.getCellAtPos(posX, posY).setValue(value);
+            return this.getCellAtPos(posX, posY).setValue(value); // <== 
         };
 
         Grid.prototype.getFreeCells = function() {
@@ -197,13 +178,20 @@ define(
 
         // -----
 
-        function Sudoku() {
-            this.grid = new Grid();
+        function Sudoku(clusterWidth, clusterHeight) {
+            this.grid = new Grid(clusterWidth || Sudoku.DEFAULT_CLUSTER_WIDTH, clusterHeight || Sudoku.DEFAULT_CLUSTER_HEIGHT);
             this.observers = [];
         };
 
+        Sudoku.DEFAULT_CLUSTER_WIDTH = 3;
+        Sudoku.DEFAULT_CLUSTER_HEIGHT = 3;
+
         Sudoku.prototype = {};
         Sudoku.prototype.constructor = Sudoku;
+
+        Sudoku.prototype.getSideSize = function() {
+            return this.grid.getSideSize(); // <== 
+        };
 
         Sudoku.prototype.addObserver = function(observer) {
             this.observers.push(observer);
